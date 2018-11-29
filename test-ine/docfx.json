@@ -36,6 +36,7 @@
     "externalReference": [],
     "globalMetadata": {
       "breadcrumb_path": "/test-ine/breadcrumb/toc.json",
+      "bilingual_type": "hover over",
       "extendBreadcrumb": true,
       "feedback_system": "None"
     },
