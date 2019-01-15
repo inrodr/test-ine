@@ -1,0 +1,356 @@
+---
+title: UNIX および Linux エージェントの監視に関するトラブルシューティング
+description: この記事では、UNIX/Linux OS の検出と監視に関する基本的なトラブルシューティング ガイダンスを提供します。
+author: JYOTHIRMAISURI
+ms.author: magoedte
+manager: carmonm
+ms.date: 05/22/2017
+ms.custom: na
+ms.prod: system-center
+ms.technology: operations-manager
+ms.topic: article
+ms.assetid: 6afa5807-9393-4fc9-92c2-aa7427d72f2f
+ms.openlocfilehash: a2f8703917fa736331f465b8e8ee15cff4d876f6
+ms.sourcegitcommit: 3139747915413c6a80dd1478af7a4746dc2558c5
+ms.translationtype: HT
+ms.contentlocale: ja-JP
+ms.lasthandoff: 01/11/2019
+ms.locfileid: "53622181"
+---
+# <a name="troubleshooting-monitoring-of-unix-and-linux-computers"></a>UNIX および Linux コンピューターの監視のトラブルシューティング
+
+System Center 2016 - Operations Manager では、Windows コンピューターの監視と同様の UNIX および Linux コンピューターの監視機能も利用できます。 ヘルスとパフォーマンスの監視、レポートの取得、タスクの実行、およびカスタム監視インストルメンテーションの実装を行うことができます。  
+  
+UNIX および Linux コンピューターで次の要素を監視できます。  
+  
+-   サービスおよびアプリケーション  
+  
+-   ファイル システム、ディスクの空き領域、スワップ領域、システム メモリ  
+  
+-   ネットワーク インターフェイス  
+  
+-   コア プロセスおよび属性  
+  
+-   主な構成  
+
+UNIX および Linux コンピューターを監視する前に、次の手順を完了する必要があります。  
+
+1. [Microsoft ダウンロード センター](https://www.microsoft.com/download/details.aspx?id=29696)から最新バージョンをダウンロードして管理パックをインポートします  
+2. UNIX および Linux コンピューターの監視[専用リソース プールを作成](manage-resource-pools-manage.md)します   
+3. プール内の各管理サーバーの[証明書を構成](manage-resource-pools-manage.md#configure-certificates-for-unix-and-linux-dedicated-resource-pools)します  
+4. [実行アカウントを作成して構成](manage-security-create-crossplat-credentials.md)します    
+5. [検出ウィザード](manage-deploy-crossplat-agent-console.md)を使って UNIX および Linux にエージェントをインストールします  
+
+上記の手順を完了し、UNIX および Linux コンピューターを正常に検出してエージェントを展開した後、コンピューターが正しく監視されていることを確認する必要があります。  エージェントを展開すると、実行アカウントが該当する検出ルールを使って検出を実行し、監視が開始されます。 数分後、管理ワークスペースで **[デバイス管理] > [UNIX/Linux コンピューター]** に移動し、コンピューターが **[不明]** リストに含まれないことを確認します。  検出されて OS とディストリビューションの特定のバージョンが表示されている必要があります。   
+
+既定では、Operations Manager は次のオペレーティング システム オブジェクトを監視します。
+
+- オペレーティング システム 
+- 論理ディスク 
+- ネットワーク アダプター
+
+UNIX および Linux 管理パック テンプレートを使用して、管理対象の UNIX および Linux コンピューターに追加の監視および対話機能を提供できます。 詳しくは、オーサリング ガイドの「[UNIX または Linux のログ ファイル](https://technet.microsoft.com/library/hh457589.aspx)」および「[UNIX または Linux のサービス](https://technet.microsoft.com/library/hh457572.aspx)」ご覧ください。
+
+## <a name="troubleshooting-unix-and-linux-monitoring"></a>UNIX および Linux の監視に関するトラブルシューティング
+次のセクションは、Operations Manager での UNIX および Linux コンピューターの監視において発生する場合がある問題についての情報を提供します。     
+
+### <a name="certificate-signing-error-message"></a>証明書署名エラー メッセージ  
+UNIX または Linux エージェントのインストール中、次のエラーが表示されることがあります。  
+  
+```  
+Event Type: Error  
+Event Source: Cross Platform Modules  
+Event Category: None  
+Event ID: 256  
+Date: 4/1/2009  
+Time: 4:02:27 PM  
+User: N/A  
+Computer: COMPUTER1  
+Description: Unexpected ScxCertLibException: Can't decode from base64  
+; input data is:  
+  
+```  
+  
+このエラーは証明書署名モジュールが呼び出されたときに、証明書自体が空の場合に発生します。 このエラーは、リモート システムへの SSH 接続障害が原因である可能性があります。  
+  
+このエラーが表示される場合は、次の操作を行います。  
+  
+1.  リモート ホストで SSH デーモンが実行されていることを確認します。  
+  
+2.  検出ウィザードで指定された資格情報を使用して、リモート ホストとの SSH セッションを開くことができるかどうか確認します。  
+  
+3.  検出ウィザードで指定した資格情報に、検出に必要な特権があることを確認します。 詳しくは、「[UNIX および Linux コンピューターにアクセスするために必要な資格情報](plan-security-crossplat-credentials.md)」をご覧ください。  
+  
+### <a name="certificate-name-and-host-name-do-not-match"></a>証明書名とホスト名が一致しない  
+証明書で使用されている共通名 (CN) は、Operations Manager によって解決される完全修飾ドメイン名 (FQDN) と一致する必要があります。  CN が一致しない場合、検出ウィザードを実行すると次のエラーが表示されます。  
+  
+```  
+The SSL certificate contains a common name (CN) that does not match the hostname  
+```  
+  
+UNIX または Linux コンピューターで証明書の基本的な詳細を表示するには、次のコマンドを入力します。  
+  
+```  
+openssl x509 -noout -in /etc/opt/microsoft/scx/ssl/scx.pem -subject -issuer -dates  
+```  
+  
+これにより、次のような出力が表示されます。  
+  
+```  
+subject= /DC=name/DC=newdomain/CN=newhostname/CN=newhostname.newdomain.name  
+issuer= /DC=name/DC=newdomain/CN=newhostname/CN=newhostname.newdomain.name  
+notBefore=Mar 25 05:21:18 2008 GMT  
+notAfter=Mar 20 05:21:18 2029 GMT  
+  
+```  
+  
+ホスト名と日付を検証し、Operations Manager 管理サーバーで解決される名前に一致していることを確認します。  
+  
+ホスト名が一致しない場合は、次のいずれかの操作を行って問題を解決します。  
+  
+-   UNIX または Linux ホスト名は正しいものの、Operations Manager 管理サーバーがそれを正しく解決していない場合は、正しい FQDN と一致するように DNS エントリを変更するか、Operations Manager サーバーの hosts ファイルにエントリを追加します。  
+  
+-   UNIX または Linux のホスト名が正しくない場合は、次のいずれかの操作を行います。  
+  
+    -   UNIX または Linux ホストのホスト名を正しいものに変更し、新しい証明書を作成します。  
+  
+    -   目的のホスト名で新しい証明書を作成します。  
+  
+**証明書で名前を変更するには:**  
+  
+証明書が正しくない名前で作成された場合は、ホスト名を変更して証明書と秘密キーを再作成することができます。 これを行うには、UNIX または Linux コンピューターで、次のコマンドを実行します。  
+  
+```  
+/opt/microsoft/scx/bin/tools/scxsslconfig -f -v  
+```  
+  
+**-f** オプションは /etc/opt/microsoft/scx/ssl にあるファイルの上書を強制します。  
+  
+次の例で示すように、**-h** や **-d** スイッチを使って証明書上のホスト名やドメイン名を変更することもできます。  
+  
+```  
+/opt/microsoft/scx/bin/tools/scxsslconfig -f -h <hostname> -d <domain.name>  
+```  
+  
+次のコマンドを実行してエージェントを再起動します。  
+  
+```  
+  
+/opt/microsoft/scx/bin/tools/scxadmin -restart  
+  
+```  
+  
+**hosts ファイルにエントリを追加するには:**  
+  
+FQDN が 逆引き DNS にない場合は、名前解決を行う管理サーバー上にある hosts ファイルにエントリを追加します。 hosts ファイルは Windows\System32\Drivers\etc フォルダーにあります。  hosts ファイル内のエントリは、IP アドレスと FQDN の組み合わせです。  
+  
+たとえば、名前が "newhostname.newdomain.name" で IP アドレスが 192.168.1.1 のホストのエントリを追加するには、hosts ファイルの末尾に以下を追加します。  
+  
+```  
+192.168.1.1&nbsp;&nbsp;&nbsp;&nbsp; newhostname.newdomain.name  
+```  
+
+## <a name="management-pack-issues"></a>管理パックに関する問題
+
+### <a name="executecommand-does-not-support-pipeline-operators-or-aliases"></a>ExecuteCommand はパイプライン演算子またはエイリアスをサポートしない  
+*ExecuteCommand* パラメーターでパイプライン演算子またはエイリアスを使用すると、コマンドに失敗します。 *ExecuteCommand* パラメーターは、パイプライン演算子、エイリアス、およびシェル固有の構文をサポートしません。  
+  
+UNIX および Linux コンピューターの管理用に設計された System Center Operations Manager 管理パックでは、 *ExecuteCommand* パラメーターはシェル プロセスを開始せず、カスタム アクションは失敗します。  
+  
+次の各種類のカスタム アクションに対し、 *ExecuteCommand* パラメーターまたは *ExecuteShellCommand* パラメーターを使用してコマンド引数を呼び出す方法を指定します。  
+  
+-   Microsoft.Unix.WSMan.Invoke.ProbeAction  
+  
+-   Microsoft.Unix.WSMan.Invoke.WriteAction  
+  
+-   Microsoft.Unix.WSMan.Invoke.Privileged.ProbeAction  
+  
+-   Microsoft.Unix.WSMan.Invoke.Privileged.WriteAction  
+  
+*ExecuteCommand* パラメーターは、シェル プロセスを開始せずにコマンド ライン引数をコンソールに渡します。  
+  
+*ExecuteShellCommand* パラメーターは、ユーザーの既定のシェルを使用してコマンド引数をシェル プロセスに渡します。このシェルは、パイプライン演算子、エイリアス、およびシェル固有の構文をサポートします。  
+  
+> [!NOTE]  
+> *ExecuteShellCommand* パラメーターは、コマンドを実行しているユーザーの既定のシェルを使用します。 特定のシェルが必要な場合は、 *ExecuteCommand* パラメーターを使用して、コマンド引数の前に必要なシェルを追加します。  
+  
+次の例で、 *ExecuteCommand* および *ExecuteShellCommand* パラメーターの使用方法を示します。  
+  
+-   シェル プロセスを開始せずにコマンド ライン引数をコンソールに渡すには  
+  
+    `<p:ExecuteCommand_INPUT xmlns:p="https://schemas.microsoft.com/wbem/wscim/1/cim-schema/2/SCX_OperatingSystem"> <p:Command> service syslog status </p:Command> <p:timeout>10</p:timeout> </p:ExecuteCommand_INPUT>`  
+  
+-   明示的なシェルを参照するシェル プロセスにコマンドライン引数を渡すには  
+  
+    `<p:ExecuteCommand_INPUT xmlns:p="https://schemas.microsoft.com/wbem/wscim/1/cim-schema/2/SCX_OperatingSystem"> <p:Command> /bin/sh ps -ef syslog | grep -v grep </p:Command> <p:timeout>10</p:timeout> </p:ExecuteCommand_INPUT>`  
+  
+-   ユーザーの既定のシェルを使用するシェル プロセスにコマンド引数を渡すには  
+  
+    `<p:ExecuteShellCommand_INPUT xmlns:p="https://schemas.microsoft.com/wbem/wscim/1/cim-schema/2/SCX_OperatingSystem"> <p:Command> uptime |&nbsp; awk '{print $10}' |awk -F"," '{print $1}' </p:Command> <p:timeout>10</p:timeout> </p:ExecuteShellCommand_INPUT>`  
+
+## <a name="logging-and-debugging"></a>Logging and Debugging
+このトピックでは、UNIX および Linux コンピューターの監視に関する問題をトラブルシューティングをするために、ログとデバッグのツールを有効にする方法について説明します。  
+  
+### <a name="enable-operations-manager-module-logging"></a>Operations Manager モジュールのログ記録を有効にする  
+UNIX および Linux 用の Operations Manager エージェントは、クライアントの問題のトラブルシューティングを行うときに役立つ複数のログ ファイルを保持します。 これらのログ ファイルは、管理対象の UNIX または Linux コンピューターに格納されます。エージェント ログ ファイルのログ記録レベルは、必要に応じて構成できます。 より詳細なログ記録が問題の診断に役立つこともあります。 通常の運用では、ログ ファイルの過剰な増大を防ぐため、ログ レベルを既定の構成 (中間) よりも詳細な値に設定しないでください。  
+  
+> [!NOTE]  
+> Windows リモート管理 (WinRM) の外部で行われる呼び出しは、SSH と SFTP を使用して行われます。 これらのコンポーネントは、Operations Manager とは別個のログ メカニズムに依存しています。  
+  
+> [!NOTE]  
+> UNIX および Linux 用の Operations Manager エージェントのこのバージョンでは、omiserver.log ログ ファイルのログ記録レベルを既定値から変更できません。  
+  
+1. コマンド ライン プロンプトに「**COPY /Y NUL %windir%\TEMP\EnableOpsMgrModuleLogging**」と入力し、モジュールをコールするユーザー アカウントの Temp ディレクトリに **EnableOpsmgrModuleLogging** という名前の新しいファイルを作成します。  
+  
+    > [!NOTE]  
+    > 一般に、呼び出しを行う SYSTEM アカウントであり、C:\Windows\Temp が既定の SYSTEM 一時フォルダーです。  
+  
+2. 新しいファイルの作成後ただちに、Operations Manager は SSH と証明書のアクティビティを Temp ディレクトリに記録し始めます。 SSH モジュール内部に呼び出しを行うスクリプトは、<*Scriptname.vbs*>.log に記録されます。 その他のモジュールには独自のログがあります。  
+  
+場合によっては、EnableOpsmgrModuleLogging のログを有効にするために、HealthService を再起動する必要があります。  
+  
+## <a name="enable-logging-on-the-unix-agent"></a>UNIX エージェントのログを有効にする  
+これらのログは、UNIX エージェントの操作を報告します。 Operations Manager に返されるデータに問題がある場合は、このログを確認してください。 scxadmin コマンドを使用して、ログに記録される情報の量を設定できます。 このコマンドの構文は次のとおりです。  
+  
+`scxadmin -log-set [all|cimom|provider] {verbose|intermediate|errors}`  
+  
+次の表に、指定可能なパラメーター値を示します。  
+  
+|レベル|[説明]|  
+|---------|---------------|  
+|エラー|**警告** または **エラー** メッセージのみをログに記録します。|  
+|［中間］|**情報**、 **警告** 、 **エラー** メッセージをログに記録します。|  
+|詳細|デバッグ ログを含む **情報**、 **警告**、 **エラー** メッセージをログに記録します。 このレベルでログを記録すると、ログ ファイルのサイズが急速に増大する可能性があります。  このオプションは、特定の問題を診断するときに短時間だけ使用することをお勧めします。|  
+  
+### <a name="use-debugview-to-troubleshoot-discovery-issues"></a>DebugView を使用して検出に関する問題をトラブルシューティングする  
+DebugView は、検出の問題をトラブルシューティングするための EnableOpsmgrModuleLogging の代替方法です。  
+  
+1.  [https://go.microsoft.comfwlink/?Linkid=129486](https://go.microsoft.com/fwlink/?Linkid=129486) から DebugView をダウンロードします。  
+  
+2.  検出を実行する管理サーバーで DebugView を起動します。  
+  
+3.  UNIX エージェントの検出を開始します。 DebugView ウィンドウに出力が表示されます。  
+  
+4.  DebugView が、検出ウィザード プロセスの各ステップを読み出します。 多くの場合、これが最も迅速なトラブルシューティング方法です。  
+
+### <a name="enable-operations-manager-logging-for-windows-remote-management"></a>Windows リモート管理の Operations Manager ログを有効にする  
+この詳細トレース メソッドは、データをエージェントから収集するために Operations Manager により使用されている Windows リモート管理 (WinRM) のクエリを見るために使用されます。 WinRM の接続に問題があると思われる場合、このログからトラブルシューティングに役立つ詳細な情報が得られます。  
+  
+1.  UNIX または Linux エージェントを監視している管理サーバーで、コマンド プロンプトを開きます。  
+  
+2.  次のコマンドをコマンド プロンプトに入力します。  
+  
+    1.  cd C:\Program Files\Microsoft System Center 2016\Operations Manager\Tools  
+  
+    2.  StopTracing.cmd  
+  
+    3.  StartTracing.cmd VER  
+  
+3.  Operations Manager で発生している問題を再現します。  
+  
+4.  次のコマンドをコマンド プロンプトに入力します。  
+  
+    1.  StopTracing.cmd  
+  
+    2.  FormatTracing.cmd  
+  
+5.  TracingGuidsNative.log ファイルで WS-Man を検索します。  
+  
+> [!NOTE]  
+> WinRM は、Ws-Management (WS-Man) とも呼ばれます。  
+  
+> [!NOTE]  
+> FormatTracing コマンドを実行すると、Windows エクスプローラー ウィンドウが開き、c:\Windows\temp\OpsMgrTrace ディレクトリが表示されます。 TracingGuidsNative.log ファイルはこのディレクトリにあります。 
+
+## <a name="manage-unix-and-linux-log-files"></a>UNIX および Linux のログ ファイルを管理する
+UNIX および Linux 用の Operations Manager エージェントでは、エージェントのログ ファイルのサイズが制限されません。  ログ ファイルの最大サイズを制御するには、ログ ファイルを管理するプロセスを実装します。  たとえば、多くの UNIX および Linux オペレーティング システムには、標準ユーティリティとして logrotate が用意されています。 この logrotate ユーティリティを構成して、UNIX または Linux 用の Operations Manager エージェントが使用するログ ファイルを制御できます。 エージェントのログ ファイルを循環または変更した後でログ記録を再開するには、ログが循環したことをエージェントに通知する必要があります。  scxadmin コマンドを次の構文で -log\-rotate パラメーターと共に使用できます。  
+  
+`scxadmin -log-rotate all`  
+  
+### <a name="example-logrotate-configuration-file"></a>logrotate 構成ファイルの例  
+次の例は、Linux の logrotate ユーティリティで scx.log ファイルと omiserver.log を循環するための構成ファイルを示しています。 通常、logrotate は (crond によって) スケジュールされたジョブとして実行され、/etc/logrotate.d 内の構成ファイルに基づいて動作します。  この構成ファイルをテストして使用するには、各自の環境に合わせて構成を変更し、そのファイルを /etc/logrotate.d にリンクまたは保存します。  
+  
+\#opsmgr.lr  
+  
+\#Rotate scx.log  
+  
+\#週単位の循環、圧縮済みのログを 4 週間分保持する  
+  
+\#scxadmin \-log\-rotate を実行して循環後にログ記録を再開する  
+  
+\/var\/opt\/microsoft\/scx\/log\/scx.log {  
+  
+rotate 4  
+  
+weekly  
+  
+compress  
+  
+missingok  
+  
+notifempty  
+  
+postrotate  
+  
+\/usr\/sbin\/scxadmin \-log\-rotate all  
+  
+endscript  
+  
+}\#monuser という名前の監視ユーザー アカウント用の scx.log を循環する  
+  
+\#週単位の循環、圧縮済みのログを 4 週間分保持する  
+  
+\#scxadmin \-log\-rotate を実行して循環後にログ記録を再開する  
+  
+\/var\/opt\/microsoft\/scx\/log\/monuser\/scx.log {  
+  
+rotate 4  
+  
+weekly  
+  
+compress  
+  
+missingok  
+  
+notifempty  
+  
+postrotate  
+  
+\/usr\/sbin\/scxadmin \-log\-rotate all  
+  
+endscript  
+  
+}  
+  
+\#オプションで omiserver.log を循環する。 その場合は、ログ記録への影響を回避するため、OMI を  
+  
+\#停止して開始する必要がある。 月単位の循環、圧縮済みのログを 2 週間分保持する  
+  
+\#omiserver.log の循環が必要な場合は、以下の行のコメントを解除する  
+  
+\#\/var\/opt\/microsoft\/scx\/log\/omiserver.log{  
+  
+\#        rotate 2  
+  
+\#        monthly  
+  
+\#        compress  
+  
+\#        missingok  
+  
+\#        notifempty  
+  
+\#        prerotate  
+  
+\#        \/usr\/sbin\/scxadmin \-stop  
+  
+\#        endscript  
+  
+\#        postrotate  
+  
+\#        \/usr\/sbin\/scxadmin \-start  
+  
+\#        endscript\#}  
+
+## <a name="next-steps"></a>次のステップ
+エージェントの展開に関する一般的な問題の解決に役立つ他のガイダンスについては、「[SCOM 2012 Troubleshooting: UNIX/Linux Agent Discovery Wiki](https://social.technet.microsoft.com/wiki/contents/articles/4966.scom-2012-troubleshooting-unixlinux-agent-discovery.aspx#WSMan_Errors)」 (SCOM 2012 トラブルシューティング: UNIX/Linux エージェント検出 Wiki) をご覧ください。
